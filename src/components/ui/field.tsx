@@ -28,7 +28,7 @@ function FieldLegend({
       data-slot="field-legend"
       data-variant={variant}
       className={cn(
-        "mb-2.5 font-medium data-[variant=label]:text-xs data-[variant=legend]:text-sm",
+        "mb-3 font-medium data-[variant=label]:text-xs data-[variant=legend]:text-xs data-[variant=legend]:font-semibold data-[variant=legend]:uppercase data-[variant=legend]:tracking-[0.08em] data-[variant=legend]:text-muted-foreground",
         className
       )}
       {...props}
@@ -131,7 +131,7 @@ function FieldDescription({ className, ...props }: React.ComponentProps<"p">) {
     <p
       data-slot="field-description"
       className={cn(
-        "text-left text-xs/relaxed leading-normal font-normal text-muted-foreground group-has-data-horizontal/field:text-balance [[data-variant=legend]+&]:-mt-1.5",
+        "text-left text-[0.8125rem]/relaxed leading-normal font-normal text-muted-foreground group-has-data-horizontal/field:text-balance [[data-variant=legend]+&]:-mt-1.5",
         "last:mt-0 nth-last-2:-mt-1",
         "[&>a]:underline [&>a]:underline-offset-4 [&>a:hover]:text-primary",
         className
@@ -214,7 +214,7 @@ function FieldError({
     <div
       role="alert"
       data-slot="field-error"
-      className={cn("text-xs font-normal text-destructive", className)}
+      className={cn("text-[0.8125rem] leading-snug font-normal text-destructive", className)}
       {...props}
     >
       {content}
