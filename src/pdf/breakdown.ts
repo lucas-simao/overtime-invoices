@@ -1,6 +1,6 @@
 import { PDFDocument, type PDFPage } from 'pdf-lib'
 import { formatLongDate, formatMonthDay, MONTHS, MONTHS_SHORT } from '../core/dates'
-import { breakdownClosing, breakdownIntro } from '../core/documents'
+import { breakdownClosing, breakdownIntro, overtimeDaysLabel } from '../core/documents'
 import { formatDuration, formatMoney, formatPercent } from '../core/money'
 import type { Calculation, Profile } from '../core/types'
 import {
@@ -140,7 +140,7 @@ export async function renderBreakdown(profile: Profile, calc: Calculation): Prom
   ensure(30)
   drawRule(page, LEFT, RIGHT, y, ink, 0.9)
   y -= 18
-  const daysLabel = calc.days.length === 1 ? '1 day' : `${calc.days.length} days`
+  const daysLabel = overtimeDaysLabel(calc.days.length)
   drawText(page, 'Total overtime', LEFT, y, { ...row, font: fonts.serifBold })
   drawText(page, daysLabel, TASKS_X, y, taskStyle)
   drawText(page, formatDuration(calc.overtimeMinutes), RIGHT, y, { ...amount, font: fonts.sansBold, size: 11 }, 'right')
