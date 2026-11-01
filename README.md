@@ -47,6 +47,6 @@ Weekdays in the month are the business days. Holidays that fall on a weekday sti
 
 At $45 an hour and 25% overtime, the example month is the check: 4:30 of overtime is $253.13, the base salary is $7,920.00, and the invoice is $8,173.00.
 
-The invoice is US Letter. The breakdown is A4. Both use Helvetica, which is built into the PDF, so the project does not ship a paid font.
+The PDFs follow the letter shown on the page: the same layout, colors and type hierarchy. The invoice is US Letter and the breakdown is A4. They use Times and Helvetica, the fonts built into every PDF reader, in place of the page's IBM Plex Serif and Sans, so the project ships no font files.
 
 The page does not create a tax receipt (NFS-e).
