@@ -24,17 +24,33 @@ The same generator can write the files from the command line:
 npm run generate -- --profile profile.json --input month.txt --year 2026 --out ./out
 ```
 
-`profile.json` is the file you export from the page. `month.txt` is the pasted notes. The year is required because the notes only carry the day and the month.
+`profile.json` is the file you export from the page. `month.txt` is the pasted notes. `--year` can be left out when the notes write the year (`01/10/2026`, `2026-10-01`).
 
 ## Notes format
 
-Each day is one Slack-style line:
+Write one day per line, the way you already do. Each line needs a date and the time worked; whatever is left is the task list.
 
 ```text
 Horas Extras dia 01/10 - Total 1:30 SOFT 100 101
+02/10 1h30 Fixed the login SOFT-102
+2026-10-03 90min PLA-7
+Oct 6: 18:00-20:30 APP 1 2
+7 de outubro — 2 horas e 15 minutos — SOFT 201
+08/10/2026,1.5,"SOFT-301, SOFT-302"
 ```
 
-An uppercase project code applies to the bare numbers that follow it, until another project code appears. `SOFT 100` becomes `SOFT-100`. `PLA-400` stays as it is. Words stay as a description, in the order you wrote them. A parenthetical stays on the item before it: `PLA 500 (Sample note)`. A code repeated on the same day is kept once. Names, timestamps, `(edited)`, and `Sent using @…` are ignored.
+| | Understood |
+|---|---|
+| Dates | `01/10`, `1/10/2026`, `01.10`, `2026-10-01`, `Oct 1`, `October 1st, 2026`, `1 de outubro`, with or without a weekday (`Mon`, `seg`) |
+| Time | `1:30`, `1h30`, `1h 30m`, `1.5h`, `1,5 horas`, `90 min`, `2 horas e 15 minutos`, `01:30:00`, and ranges such as `18:00-20:30` (several ranges on a line are added up) |
+| Layout | Slack messages, plain lines, bullets, and rows pasted from a spreadsheet (commas or tabs). A header row and a closing `Total` line are skipped. |
+
+- **Day/month or month/day.** A number above 12 settles it (`23/10` or `10/23`). Otherwise the reading that puts every day in one month wins, and then the month you picked. The page says which way it read the dates.
+- **A line without a date** continues the day above it, so a task list that runs onto a second line stays with its day.
+- **The same day twice** is added up (two sessions). An identical line pasted twice is an error, so nothing is counted double.
+- If the line says `Total`, the time after it wins over any other time on the line.
+
+Tasks: an uppercase project code applies to the bare numbers that follow it, until another project code appears. `SOFT 100` becomes `SOFT-100`. `PLA-400` stays as it is. Words stay as a description, in the order you wrote them. A parenthetical stays on the item before it: `PLA 500 (Sample note)`. A code repeated on the same day is kept once. Names, timestamps, `(edited)`, and `Sent using @…` are ignored.
 
 ## How the total is calculated
 

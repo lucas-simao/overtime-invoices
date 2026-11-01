@@ -21,14 +21,12 @@ const { values } = parseArgs({
 function fail(message: string): never {
   console.error(message)
   console.error(
-    'Usage: npm run generate -- --profile profile.json --input month.txt --year 2026 --out ./out',
+    'Usage: npm run generate -- --profile profile.json --input month.txt [--year 2026] --out ./out',
   )
   process.exit(1)
 }
 
-if (!values.profile || !values.input || !values.year || !values.out) fail('Missing an argument.')
-const year = Number(values.year)
-if (!Number.isInteger(year)) fail('Year must be a number.')
+if (!values.profile || !values.input || !values.out) fail('Missing an argument.')
 
 const profile = JSON.parse(readFileSync(resolve(values.profile), 'utf8')) as unknown
 if (!isProfile(profile)) fail('This file is not a profile.')
@@ -38,6 +36,10 @@ if (profileProblems.length) fail(profileProblems.join('\n'))
 const notes = readFileSync(resolve(values.input), 'utf8')
 const parsed = parseOvertime(notes)
 if (parsed.errors.length) fail(parsed.errors.join('\n'))
+// The year comes from --year, or from the notes when they write it (01/10/2026).
+const writtenYears = [...new Set(parsed.entries.flatMap((entry) => (entry.year ? [entry.year] : [])))]
+const year = values.year ? Number(values.year) : writtenYears.length === 1 ? writtenYears[0] : NaN
+if (!Number.isInteger(year)) fail('Add --year: the notes do not say which year they are from.')
 const months = [...new Set(parsed.entries.map((entry) => entry.month))]
 if (months.length !== 1) fail('The notes must belong to a single month.')
 const month = months[0]

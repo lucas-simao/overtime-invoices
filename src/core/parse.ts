@@ -1,8 +1,6 @@
 import { daysInMonth } from './dates'
+import { type DateRead, readDate, readTime, remainder } from './read-time'
 import type { DayEntry } from './types'
-
-const ENTRY =
-  /Horas Extras dia\s+(\d{1,2})\s*\/\s*(\d{1,2})\s*-\s*Total\s+(\d{1,2})\s*:\s*(\d{2})\s*([\s\S]*?)(?=Horas Extras dia\s+\d{1,2}\s*\/|$)/gi
 
 export function normalizeNotes(raw: string): string {
   return raw
@@ -10,6 +8,8 @@ export function normalizeNotes(raw: string): string {
     .replace(/\(edited\)/gi, '')
     .replace(/Sent using @\S+/gi, '')
     .replace(/^.*\[\d{1,2}:\d{2}\s*[AP]M\].*$/gim, '')
+    // Slack copies can run several messages together on one line.
+    .replace(/(\S)[ \t]*(?=Horas Extras dia\b)/gi, '$1\n')
 }
 
 /**
@@ -144,56 +144,147 @@ export function tasksFromText(text: string): string[] {
   return tasks
 }
 
-export function parseOvertime(raw: string): { entries: DayEntry[]; errors: string[] } {
-  ENTRY.lastIndex = 0
+export type DateOrder = 'day-month' | 'month-day'
+
+export type ParsedNotes = {
+  entries: DayEntry[]
+  errors: string[]
+  /** How numeric dates like 05/10 were read. Absent when no date was written that way. */
+  dateOrder?: DateOrder
+}
+
+type Pending = { date: DateRead; minutes: number; text: string; label: string }
+
+function pad(value: number): string {
+  return String(value).padStart(2, '0')
+}
+
+function quote(line: string): string {
+  const trimmed = line.trim()
+  return trimmed.length > 40 ? `"${trimmed.slice(0, 40)}..."` : `"${trimmed}"`
+}
+
+function resolve(date: DateRead, order: DateOrder): { day: number; month: number; year?: number } {
+  if (date.kind === 'fixed') return date
+  return order === 'day-month'
+    ? { day: date.first, month: date.second, year: date.year }
+    : { day: date.second, month: date.first, year: date.year }
+}
+
+/**
+ * Day/month or month/day: a number above 12 settles it. Otherwise the reading
+ * that puts every day in one month wins, then the month the person picked,
+ * then day/month.
+ */
+function chooseOrder(dates: DateRead[], preferMonth?: number): DateOrder | undefined {
+  const numeric = dates.filter((date) => date.kind === 'numeric')
+  if (numeric.length === 0) return undefined
+  if (numeric.some((date) => date.first > 12)) return 'day-month'
+  if (numeric.some((date) => date.second > 12)) return 'month-day'
+  const orders: DateOrder[] = ['day-month', 'month-day']
+  const months = (order: DateOrder) => new Set(dates.map((date) => resolve(date, order).month))
+  const single = orders.filter((order) => months(order).size === 1)
+  if (single.length === 1) return single[0]
+  const candidates = single.length ? single : orders
+  if (preferMonth) {
+    const preferred = candidates.find((order) => months(order).has(preferMonth))
+    if (preferred) return preferred
+  }
+  return candidates[0]
+}
+
+const SUMMARY_LINE = /^\s*(?:total|totals|sum|soma|subtotal)(?![\p{L}])/iu
+
+/**
+ * Reads the month's overtime notes, one day per line, in most of the ways
+ * people write them. A line without a date continues the day above it.
+ * `preferMonth` breaks a tie when 05/06 could be either day/month or month/day.
+ */
+export function parseOvertime(raw: string, options: { preferMonth?: number } = {}): ParsedNotes {
   const notes = normalizeNotes(raw)
-  const entries: DayEntry[] = []
   const errors: string[] = []
-  for (const match of notes.matchAll(ENTRY)) {
-    const day = Number(match[1])
-    const month = Number(match[2])
-    const hours = Number(match[3])
-    const minutes = Number(match[4])
-    const label = `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}`
-    if (month < 1 || month > 12) {
-      errors.push(`${label} is not a real month.`)
+  const pending: Pending[] = []
+
+  for (const line of notes.split('\n')) {
+    if (!line.trim()) continue
+    const date = readDate(line)
+    if (!date) {
+      const last = pending[pending.length - 1]
+      if (SUMMARY_LINE.test(line)) continue
+      if (last) last.text = `${last.text} ${remainder(line, [])}`.trim()
+      else if (readTime(line, null)) errors.push(`No date on ${quote(line)}.`)
       continue
     }
-    if (minutes > 59) {
-      errors.push(`${label} has minutes above 59.`)
-      continue
-    }
-    if (hours === 0 && minutes === 0) {
+    const label = line.slice(date.start, date.end).trim()
+    const time = readTime(line, date)
+    if (!time) {
       errors.push(`${label} has no time.`)
       continue
     }
-    entries.push({
+    if (time.error) {
+      errors.push(`${label} ${time.error}`)
+      continue
+    }
+    if (time.minutes <= 0) {
+      errors.push(`${label} has no time.`)
+      continue
+    }
+    pending.push({ date, minutes: time.minutes, text: remainder(line, [date, ...time.spans]), label })
+  }
+
+  const dateOrder = chooseOrder(
+    pending.map((item) => item.date),
+    options.preferMonth,
+  )
+  const byDay = new Map<string, DayEntry>()
+  const seenLines = new Set<string>()
+  for (const item of pending) {
+    const { day, month, year } = resolve(item.date, dateOrder ?? 'day-month')
+    const label = `${pad(day)}/${pad(month)}`
+    if (month < 1 || month > 12) {
+      errors.push(`${item.label} is not a real date.`)
+      continue
+    }
+    if (day < 1 || day > 31) {
+      errors.push(`${item.label} is not a real date.`)
+      continue
+    }
+    const tasks = tasksFromText(item.text)
+    const key = `${year ?? ''}-${month}-${day}`
+    const fingerprint = `${key}|${item.minutes}|${tasks.join(',')}`
+    if (seenLines.has(fingerprint)) {
+      errors.push(`${label} appears twice with the same hours and tasks.`)
+      continue
+    }
+    seenLines.add(fingerprint)
+    const existing = byDay.get(key)
+    if (existing) {
+      // Two sessions on the same day: add the time, keep both task lists.
+      existing.totalMinutes += item.minutes
+      existing.hours = Math.floor(existing.totalMinutes / 60)
+      existing.minutes = existing.totalMinutes % 60
+      for (const task of tasks) if (!existing.tasks.includes(task)) existing.tasks.push(task)
+      continue
+    }
+    byDay.set(key, {
       day,
       month,
-      hours,
-      minutes,
-      totalMinutes: hours * 60 + minutes,
-      tasks: tasksFromText(match[5] ?? ''),
+      ...(year ? { year } : {}),
+      hours: Math.floor(item.minutes / 60),
+      minutes: item.minutes % 60,
+      totalMinutes: item.minutes,
+      tasks,
     })
   }
-  entries.sort((a, b) => a.month - b.month || a.day - b.day)
-  const seen = new Set<string>()
-  for (const entry of entries) {
-    const key = `${entry.month}-${entry.day}`
-    if (seen.has(key)) {
-      errors.push(
-        `${String(entry.day).padStart(2, '0')}/${String(entry.month).padStart(2, '0')} appears more than once.`,
-      )
-    }
-    seen.add(key)
-  }
-  if (entries.length === 0 && notes.trim() && errors.length === 0) {
-    errors.push(
-      'No overtime entries found. Use lines like: Horas Extras dia 01/10 - Total 2:56 SOFT 100 101',
-    )
-  }
+
+  const entries = [...byDay.values()].sort(
+    (a, b) => (a.year ?? b.year ?? 0) - (b.year ?? a.year ?? 0) || a.month - b.month || a.day - b.day,
+  )
   if (!notes.trim()) errors.push('Paste the overtime notes for the month.')
-  return { entries, errors }
+  else if (entries.length === 0 && errors.length === 0) {
+    errors.push('No days found. Write one day per line with a date and the time, like: 01/10 1:30 SOFT-100')
+  }
+  return { entries, errors, ...(dateOrder ? { dateOrder } : {}) }
 }
 
 export function assessMonth(
@@ -207,6 +298,10 @@ export function assessMonth(
     const label = `${String(entry.day).padStart(2, '0')}/${String(entry.month).padStart(2, '0')}`
     if (entry.month !== month) {
       errors.push(`${label} is outside the selected month.`)
+      continue
+    }
+    if (entry.year !== undefined && entry.year !== year) {
+      errors.push(`${label}/${entry.year} is outside the selected year.`)
       continue
     }
     if (entry.day < 1 || entry.day > last) errors.push(`${label} is not a day in that month.`)
