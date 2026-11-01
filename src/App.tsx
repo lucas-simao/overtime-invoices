@@ -751,7 +751,7 @@ export function App() {
                 />
                 <TextControl
                   id="hoursPerDay"
-                  label="Hours in a business day"
+                  label="Hours per day"
                   value={form.hoursPerDay}
                   onChange={(value) => setField("hoursPerDay", value)}
                   inputMode="decimal"
