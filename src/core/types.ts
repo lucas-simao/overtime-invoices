@@ -19,6 +19,8 @@ export type Profile = {
 export type DayEntry = {
   day: number
   month: number
+  /** Only when the notes wrote the year (01/10/2026, 2026-10-01). */
+  year?: number
   hours: number
   minutes: number
   totalMinutes: number

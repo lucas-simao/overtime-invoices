@@ -37,7 +37,7 @@ import {
   formatPercent,
   invoiceAmountWords,
 } from "@/core/money"
-import { assessMonth, parseOvertime } from "@/core/parse"
+import { assessMonth, type DateOrder, parseOvertime } from "@/core/parse"
 import { isProfile, profileErrors } from "@/core/profile"
 import {
   deleteProfile,
@@ -345,7 +345,10 @@ export function App() {
   const profile = useMemo(() => toProfile(form), [form])
   const year = Number(form.year)
   const month = Number(form.month)
-  const parsed = useMemo(() => parseOvertime(form.notes), [form.notes])
+  const parsed = useMemo(
+    () => parseOvertime(form.notes, { preferMonth: Number(form.month) || undefined }),
+    [form.notes, form.month],
+  )
   const yearInvalid = !Number.isInteger(year) || year < 2000 || year > 2100
   const monthInvalid = !Number.isInteger(month) || month < 1 || month > 12
   const monthFitErrors =
@@ -814,7 +817,7 @@ export function App() {
                   label="Overtime notes"
                   value={form.notes}
                   onChange={(value) => setField("notes", value)}
-                  hint="Paste the Slack notes. An uppercase project code such as SOFT or PLA applies to the numbers that follow."
+                  hint="One day per line, in your own format: 01/10 1:30, Oct 1 1h30, 2026-10-01 90min, 01/10 18:00-20:30, or rows pasted from a spreadsheet. An uppercase project code such as SOFT applies to the numbers that follow."
                   multiline
                   spellCheck={false}
                   className="field-sizing-fixed max-h-96 min-h-56 resize-none overflow-y-auto bg-[#FBFBFC] font-mono text-[0.8125rem] leading-relaxed aria-invalid:bg-card aria-invalid:ring-[3px] aria-invalid:ring-destructive-soft"
@@ -854,7 +857,9 @@ export function App() {
           ) : (
             <WaitingLetter noteErrorCount={notesInvalid ? noteErrors.length : 0} />
           )}
-          {parsed.entries.length > 0 ? <DaysRead entries={parsed.entries} /> : null}
+          {parsed.entries.length > 0 ? (
+            <DaysRead entries={parsed.entries} dateOrder={parsed.dateOrder} />
+          ) : null}
         </div>
       </main>
 
@@ -1129,7 +1134,13 @@ function WaitingLetter({ noteErrorCount }: { noteErrorCount: number }) {
   )
 }
 
-function DaysRead({ entries }: { entries: DayEntry[] }) {
+function DaysRead({
+  entries,
+  dateOrder,
+}: {
+  entries: DayEntry[]
+  dateOrder?: DateOrder
+}) {
   const total = entries.reduce((sum, entry) => sum + entry.totalMinutes, 0)
   return (
     <section className="flex flex-col gap-3">
@@ -1177,6 +1188,12 @@ function DaysRead({ entries }: { entries: DayEntry[] }) {
           </TableBody>
         </Table>
       </div>
+      {dateOrder ? (
+        <p className="text-[0.8125rem] text-muted-foreground">
+          Dates like {dateOrder === "day-month" ? "05/10" : "10/05"} were read
+          as {dateOrder === "day-month" ? "day/month" : "month/day"}.
+        </p>
+      ) : null}
     </section>
   )
 }

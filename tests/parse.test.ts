@@ -78,13 +78,110 @@ describe('slack notes', () => {
     expect(minutes).toBe(270)
   })
 
-  it('rejects a repeated day and a date outside the selected month', () => {
+  it('adds up two sessions on the same day, rejects a pasted duplicate and a date outside the month', () => {
     const parsed = parseOvertime(`
       Horas Extras dia 01/10 - Total 1:00 SOFT 10
       Horas Extras dia 01/10 - Total 2:00 SOFT 11
       Horas Extras dia 02/11 - Total 1:00 SOFT 12
     `)
-    expect(parsed.errors).toContain('01/10 appears more than once.')
+    expect(parsed.entries[0]).toEqual({
+      day: 1,
+      month: 10,
+      hours: 3,
+      minutes: 0,
+      totalMinutes: 180,
+      tasks: ['SOFT-10', 'SOFT-11'],
+    })
     expect(assessMonth(parsed.entries, 2026, 10)).toContain('02/11 is outside the selected month.')
+    const pasted = parseOvertime('01/10 1:00 SOFT-1\n01/10 1:00 SOFT-1')
+    expect(pasted.errors).toEqual(['01/10 appears twice with the same hours and tasks.'])
+  })
+})
+
+function read(text: string, options?: { preferMonth?: number }): string[] {
+  const parsed = parseOvertime(text, options)
+  expect(parsed.errors).toEqual([])
+  return parsed.entries.map(
+    (entry) =>
+      `${String(entry.day).padStart(2, '0')}/${String(entry.month).padStart(2, '0')} ${formatDuration(entry.totalMinutes)} ${entry.tasks.join(', ')}`,
+  )
+}
+
+describe('other ways of writing the notes', () => {
+  it('reads the time in any common form', () => {
+    expect(
+      read(`
+        01/10 1:30 SOFT-1
+        02/10 1h30 SOFT-2
+        03/10 1h 30m SOFT-3
+        04/10 1.5h SOFT-4
+        05/10 1,5 horas SOFT-5
+        06/10 90 min SOFT-6
+        07/10 2 horas e 15 minutos SOFT-7
+        08/10 01:30:00 SOFT-8
+        09/10 18:00-20:30 SOFT-9
+        10/10 08:00 - 09:00, 18:30 às 20:00 SOFT-10
+      `),
+    ).toEqual([
+      '01/10 1:30 SOFT-1',
+      '02/10 1:30 SOFT-2',
+      '03/10 1:30 SOFT-3',
+      '04/10 1:30 SOFT-4',
+      '05/10 1:30 SOFT-5',
+      '06/10 1:30 SOFT-6',
+      '07/10 2:15 SOFT-7',
+      '08/10 1:30 SOFT-8',
+      '09/10 2:30 SOFT-9',
+      '10/10 2:30 SOFT-10',
+    ])
+  })
+
+  it('reads dates with a year, in ISO, and with month names in English or Portuguese', () => {
+    expect(
+      read(`
+        2026-10-01 1:00 A-1
+        02/10/2026 1:00 A-2
+        Oct 3: 1:00 A-3
+        October 4th, 2026 | 1:00 | A-4
+        5 de outubro — 1:00 — A-5
+        Mon 06/10 Total: 1:00 A-6
+      `),
+    ).toEqual(['01/10 1:00 A-1', '02/10 1:00 A-2', '03/10 1:00 A-3', '04/10 1:00 A-4', '05/10 1:00 A-5', '06/10 1:00 A-6'])
+  })
+
+  it('reads rows pasted from a spreadsheet', () => {
+    expect(
+      read('Date,Hours,Tasks\n01/10/2026,1.5,"SOFT-1, SOFT-2"\n02/10/2026\t2:15\tSOFT-3'),
+    ).toEqual(['01/10 1:30 SOFT-1, SOFT-2', '02/10 2:15 SOFT-3'])
+  })
+
+  it('works out month/day from the dates themselves, or from the month picked', () => {
+    const us = parseOvertime('10/23 1:00 A-1\n10/24 2:00 A-2')
+    expect(us.dateOrder).toBe('month-day')
+    expect(us.entries.map((entry) => [entry.month, entry.day])).toEqual([
+      [10, 23],
+      [10, 24],
+    ])
+    // 01/10, 02/10, 03/10 only fit in one month when read as day/month.
+    expect(parseOvertime('01/10 1:00 A\n02/10 1:00 B\n03/10 1:00 C').dateOrder).toBe('day-month')
+    expect(read('05/06 1:00 X-1', { preferMonth: 6 })).toEqual(['05/06 1:00 X-1'])
+    expect(read('05/06 1:00 X-1', { preferMonth: 5 })).toEqual(['06/05 1:00 X-1'])
+  })
+
+  it('continues a day on the next line and skips a total line', () => {
+    expect(read('01/10 1:00 SOFT-1\n  also reviewed PLA 22\n02/10 0:30 SOFT-2\nTotal 1:30')).toEqual([
+      '01/10 1:00 SOFT-1, also reviewed, PLA-22',
+      '02/10 0:30 SOFT-2',
+    ])
+  })
+
+  it('explains what it could not read', () => {
+    expect(parseOvertime('01/10 SOFT-1').errors).toEqual(['01/10 has no time.'])
+    expect(parseOvertime('01/10 1:75 SOFT-1').errors).toEqual(['01/10 has minutes above 59.'])
+    expect(parseOvertime('1:30 SOFT-1').errors).toEqual(['No date on "1:30 SOFT-1".'])
+    expect(parseOvertime('2026-10-01 1:00 A').entries[0]?.year).toBe(2026)
+    expect(assessMonth(parseOvertime('01/10/2025 1:00 A').entries, 2026, 10)).toEqual([
+      '01/10/2025 is outside the selected year.',
+    ])
   })
 })
