@@ -14,6 +14,11 @@ export function invoiceIssueDate(calc: Calculation): string {
   return formatLongDate(calc.invoiceYear, calc.invoiceMonth, calc.invoiceDay)
 }
 
+/** "23 days with overtime": the days in the notes, not the business days of the month. */
+export function overtimeDaysLabel(days: number): string {
+  return days === 1 ? '1 day with overtime' : `${days} days with overtime`
+}
+
 export function totalSentence(calc: Calculation): string {
   return `Total: ${formatPlainDollars(calc.invoiceCents)} (${invoiceAmountWords(calc.invoiceCents)})`
 }
