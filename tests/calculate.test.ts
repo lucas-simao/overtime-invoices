@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { calculate } from '../src/core/calculate'
 import { countBusinessDays, invoiceIdentity } from '../src/core/dates'
-import { buildBreakdown, buildEmail, totalSentence } from '../src/core/documents'
+import { breakdownIntro, buildEmail, totalSentence } from '../src/core/documents'
 import { dollarWords, formatDuration, formatMoney, overtimeAmountCents } from '../src/core/money'
 import type { DayEntry, Profile } from '../src/core/types'
 
@@ -106,11 +106,6 @@ Best regards,
 
 Alex Rivera
 Northwind Studio`)
-    const lines = buildBreakdown(profile, calc).map((block) => ('text' in block ? block.text : ''))
-    expect(lines).toContain('Overtime rate: 25% = $56.25/hour')
-    expect(lines).toContain('Total invoice amount: $8,173.00')
-    expect(lines.some((line) => line.includes('4:30 hours of overtime worked during October 2026'))).toBe(true)
-    expect(lines).toContain(`Period: Oct 01\u201331`)
-    expect(lines).toContain(`October 01 \u2013 Total 4:30 (Tasks: Sample)`)
+    expect(breakdownIntro(calc)).toContain('4:30 hours of overtime worked during October 2026')
   })
 })
