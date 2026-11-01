@@ -1,0 +1,17 @@
+{
+  "issuer": {
+    "legalName": "Northwind Studio Ltda.",
+    "addressLines": ["Rua Example, 100", "Sala 1", "Curitiba 80000-000", "Brazil"],
+    "signName": "Alex Rivera",
+    "shortName": "Northwind Studio"
+  },
+  "billTo": {
+    "name": "Example Client",
+    "addressLines": ["100 Market St", "San Francisco, CA 94105"]
+  },
+  "serviceDescription": "App development services",
+  "hourlyRate": 45,
+  "overtimePercent": 25,
+  "hoursPerBusinessDay": 8,
+  "recipientName": "Jordan"
+}
