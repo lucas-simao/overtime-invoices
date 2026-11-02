@@ -13,12 +13,14 @@ import {
   CopyIcon,
   DownloadSimpleIcon,
   FileTextIcon,
+  ImageSquareIcon,
   LockSimpleIcon,
   TrashIcon,
   WarningCircleIcon,
   XIcon,
 } from "@phosphor-icons/react"
 import { cn } from "cn"
+import { fileToLogo, LOGO_ACCEPT, LogoError } from "@/lib/logo"
 
 import sampleProfile from "../examples/sample-profile.json"
 import sampleMonth from "../examples/sample-month.txt?raw"
@@ -95,10 +97,14 @@ const MONTH_ITEMS = MONTHS.map((label, index) => ({
 
 type FormState = {
   legalName: string
+  /** PNG data URL, or "" for none. */
+  logo: string
   address: string
   signName: string
   shortName: string
   billName: string
+  /** PNG data URL, or "" for none. */
+  billLogo: string
   billAddress: string
   serviceDescription: string
   hourlyRate: string
@@ -132,10 +138,12 @@ function linesOf(value: string): string[] {
 function emptyForm(period: { year: number; month: number }): FormState {
   return {
     legalName: "",
+    logo: "",
     address: "",
     signName: "",
     shortName: "",
     billName: "",
+    billLogo: "",
     billAddress: "",
     serviceDescription: "",
     hourlyRate: "",
@@ -155,10 +163,12 @@ function toProfile(form: FormState): Profile {
       addressLines: linesOf(form.address),
       signName: form.signName,
       shortName: form.shortName,
+      ...(form.logo ? { logo: form.logo } : {}),
     },
     billTo: {
       name: form.billName,
       addressLines: linesOf(form.billAddress),
+      ...(form.billLogo ? { logo: form.billLogo } : {}),
     },
     serviceDescription: form.serviceDescription,
     hourlyRate: Number(form.hourlyRate),
@@ -180,10 +190,12 @@ function toDraft(form: FormState): Draft {
 function fromDraft(draft: Draft): FormState {
   return {
     legalName: draft.profile.issuer.legalName,
+    logo: draft.profile.issuer.logo ?? "",
     address: draft.profile.issuer.addressLines.join("\n"),
     signName: draft.profile.issuer.signName,
     shortName: draft.profile.issuer.shortName,
     billName: draft.profile.billTo.name,
+    billLogo: draft.profile.billTo.logo ?? "",
     billAddress: draft.profile.billTo.addressLines.join("\n"),
     serviceDescription: draft.profile.serviceDescription,
     hourlyRate: String(draft.profile.hourlyRate),
@@ -270,6 +282,77 @@ function download(bytes: Uint8Array, filename: string) {
   link.download = filename
   link.click()
   URL.revokeObjectURL(url)
+}
+
+/** Pick, preview and remove a logo. The file never leaves the browser. */
+function LogoControl({
+  id,
+  label,
+  value,
+  onChange,
+  onError,
+}: {
+  id: string
+  label: string
+  value: string
+  onChange: (value: string) => void
+  onError: (message: string) => void
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [busy, setBusy] = useState(false)
+
+  async function pick(file: File | undefined) {
+    if (!file) return
+    setBusy(true)
+    try {
+      onChange(await fileToLogo(file))
+    } catch (error) {
+      onError(error instanceof LogoError ? error.message : "The image could not be read. Try a PNG or JPEG.")
+    } finally {
+      setBusy(false)
+      if (inputRef.current) inputRef.current.value = ""
+    }
+  }
+
+  return (
+    <Field>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <div className="flex items-center gap-3">
+        <div className="flex h-14 w-40 shrink-0 items-center justify-center overflow-hidden rounded-md border border-input bg-[#FBFBFC] px-2">
+          {value ? (
+            <img src={value} alt={`${label} preview`} className="max-h-11 max-w-full object-contain" />
+          ) : (
+            <ImageSquareIcon aria-hidden className="size-5 text-muted-foreground" />
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={busy}
+            onClick={() => inputRef.current?.click()}
+          >
+            {value ? "Replace" : "Add logo"}
+          </Button>
+          {value ? (
+            <Button type="button" variant="ghost" size="sm" onClick={() => onChange("")}>
+              Remove
+            </Button>
+          ) : null}
+        </div>
+        <input
+          ref={inputRef}
+          id={id}
+          type="file"
+          accept={LOGO_ACCEPT}
+          className="sr-only"
+          onChange={(event) => void pick(event.target.files?.[0])}
+        />
+      </div>
+      <FieldDescription>PNG, JPEG, SVG or WebP. Printed on the invoice; saved with the profile.</FieldDescription>
+    </Field>
+  )
 }
 
 function TextControl({
@@ -662,6 +745,13 @@ export function App() {
                   onChange={(value) => setField("legalName", value)}
                   error={problem("Enter the legal name on the invoice.")}
                 />
+                <LogoControl
+                  id="logo"
+                  label="Logo"
+                  value={form.logo}
+                  onChange={(value) => setField("logo", value)}
+                  onError={(message) => setNotice({ title: "Could not add the logo", message })}
+                />
                 <TextControl
                   id="address"
                   label="Address"
@@ -701,6 +791,13 @@ export function App() {
                   value={form.billName}
                   onChange={(value) => setField("billName", value)}
                   error={problem("Enter the client name.")}
+                />
+                <LogoControl
+                  id="billLogo"
+                  label="Client logo"
+                  value={form.billLogo}
+                  onChange={(value) => setField("billLogo", value)}
+                  onError={(message) => setNotice({ title: "Could not add the logo", message })}
                 />
                 <TextControl
                   id="billAddress"
@@ -943,6 +1040,13 @@ function Letter({ profile, calc }: { profile: Profile; calc: Calculation }) {
     >
       <div className="flex flex-wrap items-start justify-between gap-6">
         <div className="flex flex-col gap-1.5">
+          {profile.issuer.logo ? (
+            <img
+              src={profile.issuer.logo}
+              alt=""
+              className="mb-2 h-auto max-h-9 w-auto max-w-40 self-start object-contain sm:max-h-11 sm:max-w-52"
+            />
+          ) : null}
           <span className="text-base font-semibold sm:text-xl">
             {profile.issuer.legalName}
           </span>
@@ -966,6 +1070,13 @@ function Letter({ profile, calc }: { profile: Profile; calc: Calculation }) {
       <div className="grid gap-4 sm:grid-cols-2 sm:gap-6">
         <div className="flex flex-col gap-1.5">
           <PaperLabel>Bill to</PaperLabel>
+          {profile.billTo.logo ? (
+            <img
+              src={profile.billTo.logo}
+              alt=""
+              className="my-1 h-auto max-h-7 w-auto max-w-32 self-start object-contain sm:max-h-8 sm:max-w-40"
+            />
+          ) : null}
           <span className="text-[0.9375rem] font-medium sm:text-base">
             {profile.billTo.name}
           </span>

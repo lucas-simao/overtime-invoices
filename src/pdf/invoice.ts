@@ -11,7 +11,9 @@ import {
   drawRule,
   drawSignature,
   drawText,
+  drawLogo,
   embedFonts,
+  embedLogo,
   ink,
   muted,
   type TextStyle,
@@ -37,12 +39,17 @@ export async function renderInvoice(profile: Profile, calc: Calculation): Promis
   doc.setCreator('overtime-invoices')
   const page = doc.addPage([PAGE_WIDTH, PAGE_HEIGHT])
   const fonts = await embedFonts(doc)
+  const [issuerLogo, clientLogo] = await Promise.all([
+    embedLogo(doc, profile.issuer.logo),
+    embedLogo(doc, profile.billTo.logo),
+  ])
   const period = `${MONTHS[calc.month - 1]} ${calc.year}`
 
   let y = drawLetterhead(
     page,
     fonts,
     {
+      logo: issuerLogo,
       issuerName: profile.issuer.legalName.trim(),
       issuerAddress: filled(profile.issuer.addressLines),
       kind: 'Invoice',
@@ -65,6 +72,7 @@ export async function renderInvoice(profile: Profile, calc: Calculation): Promis
   drawLabel(page, fonts, 'Service', secondColumn, top)
 
   let leftY = top - 19
+  if (clientLogo) leftY -= drawLogo(page, clientLogo, LEFT, top - 10, Math.min(columnWidth, 130), 30) + 6
   leftY = drawLines(
     page,
     wrapText(profile.billTo.name.trim(), valueStyle.font, valueStyle.size, columnWidth),

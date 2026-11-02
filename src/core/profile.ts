@@ -4,6 +4,15 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string')
 }
 
+/** A logo is a PNG or JPEG data URL, the two image types every PDF can hold. */
+export function isLogo(value: unknown): value is string {
+  return typeof value === 'string' && /^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(value)
+}
+
+function isOptionalLogo(value: unknown): boolean {
+  return value === undefined || value === '' || isLogo(value)
+}
+
 export function isProfile(value: unknown): value is Profile {
   if (!value || typeof value !== 'object') return false
   const profile = value as Profile
@@ -12,8 +21,10 @@ export function isProfile(value: unknown): value is Profile {
     isStringArray(profile.issuer.addressLines) &&
     typeof profile.issuer.signName === 'string' &&
     typeof profile.issuer.shortName === 'string' &&
+    isOptionalLogo(profile.issuer.logo) &&
     typeof profile.billTo?.name === 'string' &&
     isStringArray(profile.billTo.addressLines) &&
+    isOptionalLogo(profile.billTo.logo) &&
     typeof profile.serviceDescription === 'string' &&
     typeof profile.hourlyRate === 'number' &&
     Number.isFinite(profile.hourlyRate) &&
