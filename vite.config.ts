@@ -4,6 +4,9 @@ import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
+  // Relative asset paths, so the same build works at /overtime-invoices/ on GitHub Pages,
+  // at the root of any other host, and opened from dist/ locally.
+  base: './',
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

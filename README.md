@@ -1,9 +1,15 @@
 # Overtime invoice
 
-A local page for a monthly contractor invoice. You fill in a profile, paste the month's overtime notes, and get three things:
+[![CI](https://github.com/lucas-simao/overtime-invoices/actions/workflows/ci.yml/badge.svg)](https://github.com/lucas-simao/overtime-invoices/actions/workflows/ci.yml)
+[![Deploy](https://github.com/lucas-simao/overtime-invoices/actions/workflows/deploy.yml/badge.svg)](https://github.com/lucas-simao/overtime-invoices/actions/workflows/deploy.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+**[Try it in your browser →](https://lucas-simao.github.io/overtime-invoices/)** Nothing to install, nothing uploaded: your data never leaves the page.
+
+For contractors who bill a monthly salary plus overtime. Fill in a profile once, paste the month's overtime notes in whatever format you keep them, and get:
 
 - an invoice PDF
-- an overtime breakdown PDF
+- an overtime breakdown PDF, day by day
 - the email that sends them
 
 ## What it makes
@@ -113,3 +119,17 @@ At $45 an hour and 25% overtime, the example month is the check: 4:30 of overtim
 The PDFs follow the letter shown on the page: the same layout, colors and type hierarchy. The invoice is US Letter and the breakdown is A4. They use Times and Helvetica, the fonts built into every PDF reader, in place of the page's IBM Plex Serif and Sans, so the project ships no font files.
 
 The page does not create a tax receipt (NFS-e).
+
+## Contributing
+
+Issues and pull requests are welcome. If your notes come in a format the page does not read yet, open an issue with a made-up example of a few lines and it can be added to the parser and its tests.
+
+```bash
+npm install
+npm test        # unit tests: parsing, the calculation, the PDFs
+npm run dev     # the page, with hot reload
+npm run build   # what GitHub Pages serves
+```
+
+Every pull request runs the tests and the build. Changes to `main` need the owner's review, and each merge redeploys the page.
+
