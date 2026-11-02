@@ -17,6 +17,8 @@ export type Profile = {
   hourlyRate: number
   overtimePercent: number
   hoursPerBusinessDay: number
+  /** Weekdays paid in the base salary, 0 = Sunday … 6 = Saturday. Absent means Monday to Friday. */
+  workDays?: number[]
   recipientName: string
 }
 
@@ -35,6 +37,7 @@ export type Calculation = {
   year: number
   month: number
   businessDays: number
+  workDays: number[]
   hoursPerBusinessDay: number
   baseHours: number
   hourlyCents: number

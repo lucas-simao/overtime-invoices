@@ -1,4 +1,11 @@
-import { type CalendarDate, countBusinessDays, daysInMonth, invoiceIdentity, today } from './dates'
+import {
+  type CalendarDate,
+  countBusinessDays,
+  daysInMonth,
+  invoiceIdentity,
+  normalizeWorkDays,
+  today,
+} from './dates'
 import { dollarsToCents, floorToDollar, overtimeAmountCents, overtimeRateCents } from './money'
 import type { Calculation, DayEntry } from './types'
 
@@ -8,6 +15,8 @@ export function calculate(input: {
   hourlyRate: number
   overtimePercent: number
   hoursPerBusinessDay: number
+  /** Weekdays paid in the base salary, 0 = Sunday. Defaults to Monday to Friday. */
+  workDays?: readonly number[]
   days: DayEntry[]
   /** The date printed on the invoice. Defaults to today. */
   issueDate?: CalendarDate
@@ -15,7 +24,8 @@ export function calculate(input: {
   invoiceNumber?: string
 }): Calculation {
   const hourlyCents = dollarsToCents(input.hourlyRate)
-  const businessDays = countBusinessDays(input.year, input.month)
+  const workDays = normalizeWorkDays(input.workDays)
+  const businessDays = countBusinessDays(input.year, input.month, workDays)
   const baseHours = businessDays * input.hoursPerBusinessDay
   const baseCents = Math.round(baseHours * hourlyCents)
   const rateCents = overtimeRateCents(hourlyCents, input.overtimePercent)
@@ -28,6 +38,7 @@ export function calculate(input: {
     year: input.year,
     month: input.month,
     businessDays,
+    workDays,
     hoursPerBusinessDay: input.hoursPerBusinessDay,
     baseHours,
     hourlyCents,

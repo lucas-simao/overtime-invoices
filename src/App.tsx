@@ -26,13 +26,18 @@ import sampleProfile from "../examples/sample-profile.json"
 import sampleMonth from "../examples/sample-month.txt?raw"
 import { calculate } from "@/core/calculate"
 import {
+  countBusinessDays,
+  DAY_NAMES,
+  DAY_NAMES_SHORT,
   invoiceIdentity,
   invoiceNumberError,
   MONTHS,
+  normalizeWorkDays,
   parseIsoDate,
   previousMonth,
   toIsoDate,
   today,
+  WEEKDAYS,
 } from "@/core/dates"
 import {
   breakdownFileName,
@@ -119,6 +124,8 @@ type FormState = {
   hourlyRate: string
   overtimePercent: string
   hoursPerDay: string
+  /** Weekdays paid in the base salary, 0 = Sunday. */
+  workDays: number[]
   recipientName: string
   year: string
   month: string
@@ -162,6 +169,7 @@ function emptyForm(period: { year: number; month: number }): FormState {
     hourlyRate: "",
     overtimePercent: "",
     hoursPerDay: "",
+    workDays: [...WEEKDAYS],
     recipientName: "",
     year: String(period.year),
     month: String(period.month),
@@ -189,6 +197,7 @@ function toProfile(form: FormState): Profile {
     hourlyRate: Number(form.hourlyRate),
     overtimePercent: Number(form.overtimePercent),
     hoursPerBusinessDay: Number(form.hoursPerDay),
+    workDays: form.workDays,
     recipientName: form.recipientName,
   }
 }
@@ -216,6 +225,7 @@ function fromDraft(draft: Draft): FormState {
     hourlyRate: String(draft.profile.hourlyRate),
     overtimePercent: String(draft.profile.overtimePercent),
     hoursPerDay: String(draft.profile.hoursPerBusinessDay),
+    workDays: normalizeWorkDays(draft.profile.workDays),
     recipientName: draft.profile.recipientName,
     year: String(draft.year),
     month: String(draft.month),
@@ -299,6 +309,59 @@ function download(bytes: Uint8Array, filename: string) {
   link.download = filename
   link.click()
   URL.revokeObjectURL(url)
+}
+
+/** Which weekdays the base salary pays. Weeks start on Monday. */
+function WorkDaysControl({
+  value,
+  onChange,
+  error,
+  count,
+}: {
+  value: number[]
+  onChange: (value: number[]) => void
+  error?: string
+  count?: { days: number; period: string }
+}) {
+  const order = [1, 2, 3, 4, 5, 6, 0]
+  function toggle(day: number) {
+    onChange(
+      value.includes(day)
+        ? value.filter((item) => item !== day)
+        : normalizeWorkDays([...value, day]),
+    )
+  }
+  return (
+    <Field data-invalid={error ? true : undefined} className="mt-4">
+      <FieldLabel id="workDays-label">Work days</FieldLabel>
+      <div role="group" aria-labelledby="workDays-label" className="flex flex-wrap gap-1.5">
+        {order.map((day) => {
+          const on = value.includes(day)
+          return (
+            <Button
+              key={day}
+              type="button"
+              size="sm"
+              variant={on ? "default" : "outline"}
+              aria-pressed={on}
+              aria-label={DAY_NAMES[day]}
+              className="w-12"
+              onClick={() => toggle(day)}
+            >
+              {DAY_NAMES_SHORT[day]}
+            </Button>
+          )
+        })}
+      </div>
+      <FieldDescription>
+        {count && value.length > 0
+          ? `${count.period} has ${count.days} of these days; the base salary pays them. `
+          : "The base salary pays these days in the month. "}
+        Overtime, holidays included, comes only from the notes.
+      </FieldDescription>
+      {error ? <FieldError>{error}</FieldError> : null}
+    </Field>
+  )
 }
 
 /** Pick, preview and remove a logo. The file never leaves the browser. */
@@ -486,6 +549,7 @@ export function App() {
       hourlyRate: profile.hourlyRate,
       overtimePercent: profile.overtimePercent,
       hoursPerBusinessDay: profile.hoursPerBusinessDay,
+      workDays: profile.workDays,
       days: parsed.entries,
       issueDate: issueDate ?? undefined,
       invoiceNumber,
@@ -897,6 +961,19 @@ export function App() {
                   error={problem("Enter the hours in a business day.")}
                 />
               </div>
+              <WorkDaysControl
+                value={form.workDays}
+                onChange={(value) => setField("workDays", value)}
+                error={problem("Pick at least one work day.")}
+                count={
+                  !yearInvalid && !monthInvalid
+                    ? {
+                        days: countBusinessDays(year, month, form.workDays),
+                        period: `${MONTHS[month - 1]} ${year}`,
+                      }
+                    : undefined
+                }
+              />
             </FieldSet>
             <FieldSeparator />
             <FieldSet>

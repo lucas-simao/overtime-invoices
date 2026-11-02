@@ -60,6 +60,7 @@ const calc = calculate({
   hourlyRate: profile.hourlyRate,
   overtimePercent: profile.overtimePercent,
   hoursPerBusinessDay: profile.hoursPerBusinessDay,
+  workDays: profile.workDays,
   days: parsed.entries,
   issueDate,
   invoiceNumber: values.number,

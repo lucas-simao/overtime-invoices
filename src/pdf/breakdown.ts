@@ -1,5 +1,5 @@
 import { PDFDocument, type PDFPage } from 'pdf-lib'
-import { formatLongDate, formatMonthDay, MONTHS, MONTHS_SHORT } from '../core/dates'
+import { formatLongDate, formatMonthDay, MONTHS, MONTHS_SHORT, WEEKDAYS, workDaysLabel } from '../core/dates'
 import { breakdownClosing, breakdownIntro, overtimeDaysLabel } from '../core/documents'
 import { formatDuration, formatMoney, formatPercent } from '../core/money'
 import type { Calculation, Profile } from '../core/types'
@@ -109,7 +109,12 @@ export async function renderBreakdown(profile: Profile, calc: Calculation): Prom
 
   // Base salary
   section('Base salary', `${short} 01${DASH}${String(calc.periodEndDay).padStart(2, '0')}`)
-  line(`${calc.businessDays} business days × ${calc.hoursPerBusinessDay} hours`, `${calc.baseHours} hours`)
+  // Monday to Friday keeps the familiar wording; any other schedule names its days.
+  const usual = calc.workDays.join() === WEEKDAYS.join()
+  const dayCount = usual
+    ? `${calc.businessDays} business days`
+    : `${calc.businessDays} work days (${workDaysLabel(calc.workDays)})`
+  line(`${dayCount} × ${calc.hoursPerBusinessDay} hours`, `${calc.baseHours} hours`)
   line('Hourly rate', formatMoney(calc.hourlyCents))
   line('Subtotal', formatMoney(calc.baseCents), { strong: true, last: true })
 

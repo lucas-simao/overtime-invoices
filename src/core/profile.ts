@@ -32,6 +32,9 @@ export function isProfile(value: unknown): value is Profile {
     Number.isFinite(profile.overtimePercent) &&
     typeof profile.hoursPerBusinessDay === 'number' &&
     Number.isFinite(profile.hoursPerBusinessDay) &&
+    (profile.workDays === undefined ||
+      (Array.isArray(profile.workDays) &&
+        profile.workDays.every((day) => Number.isInteger(day) && day >= 0 && day <= 6))) &&
     typeof profile.recipientName === 'string'
   )
 }
@@ -47,5 +50,6 @@ export function profileErrors(profile: Profile): string[] {
   if (!(profile.hourlyRate > 0)) errors.push('Enter an hourly rate above zero.')
   if (profile.overtimePercent < 0) errors.push('Overtime percent cannot be negative.')
   if (!(profile.hoursPerBusinessDay > 0)) errors.push('Enter the hours in a business day.')
+  if (profile.workDays !== undefined && profile.workDays.length === 0) errors.push('Pick at least one work day.')
   return errors
 }

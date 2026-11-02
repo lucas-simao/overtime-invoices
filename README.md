@@ -101,7 +101,7 @@ The invoice is dated the day you make it. Its number starts as the 1st of the mo
 
 ## How the total is calculated
 
-Weekdays in the month are the business days. Holidays that fall on a weekday still count.
+The business days are the days in the month that fall on the profile's **work days**: Monday to Friday unless you pick others (Monday to Saturday, weekends only, Tuesday, Thursday and Saturday…). Holidays on a work day still count. Overtime is only what you write in the notes, on any day, holidays included.
 
 - Base salary = business days × hours in a day × hourly rate
 - Overtime rate = hourly rate × (1 + overtime percent)
