@@ -63,7 +63,7 @@ The same generator can write the files from the command line:
 npm run generate -- --profile profile.json --input month.txt --year 2026 --out ./out
 ```
 
-`profile.json` is the file you export from the page. `month.txt` is the pasted notes. `--year` can be left out when the notes write the year (`01/10/2026`, `2026-10-01`).
+`profile.json` is the file you export from the page. `month.txt` is the pasted notes. `--year` can be left out when the notes write the year (`01/10/2026`, `2026-10-01`). The invoice is dated today unless you pass `--date 2026-11-05`, and `--number INV-042` replaces the usual number.
 
 ## Notes format
 
@@ -90,6 +90,10 @@ Oct 6: 18:00-20:30 APP 1 2
 - If the line says `Total`, the time after it wins over any other time on the line.
 
 Tasks: an uppercase project code applies to the bare numbers that follow it, until another project code appears. `SOFT 100` becomes `SOFT-100`. `PLA-400` stays as it is. Words stay as a description, in the order you wrote them. A parenthetical stays on the item before it: `PLA 500 (Sample note)`. A code repeated on the same day is kept once. Names, timestamps, `(edited)`, and `Sent using @…` are ignored.
+
+## Invoice date and number
+
+The invoice is dated the day you make it. Its number starts as the 1st of the month after the one worked, so October 2026 is `20261101`. Both are fields on the page: change the date to prepare an invoice now and send it later, or type your own number. A changed number goes back to the usual one when you pick another month.
 
 ## How the total is calculated
 

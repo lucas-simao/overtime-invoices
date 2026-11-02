@@ -1,4 +1,4 @@
-import { countBusinessDays, daysInMonth, invoiceIdentity } from './dates'
+import { type CalendarDate, countBusinessDays, daysInMonth, invoiceIdentity, today } from './dates'
 import { dollarsToCents, floorToDollar, overtimeAmountCents, overtimeRateCents } from './money'
 import type { Calculation, DayEntry } from './types'
 
@@ -9,6 +9,10 @@ export function calculate(input: {
   overtimePercent: number
   hoursPerBusinessDay: number
   days: DayEntry[]
+  /** The date printed on the invoice. Defaults to today. */
+  issueDate?: CalendarDate
+  /** Defaults to the 1st of the month after the one worked: 20261101 for October 2026. */
+  invoiceNumber?: string
 }): Calculation {
   const hourlyCents = dollarsToCents(input.hourlyRate)
   const businessDays = countBusinessDays(input.year, input.month)
@@ -18,7 +22,8 @@ export function calculate(input: {
   const overtimeMinutes = input.days.reduce((sum, day) => sum + day.totalMinutes, 0)
   const overtimeCents = overtimeAmountCents(overtimeMinutes, rateCents)
   const exactTotalCents = baseCents + overtimeCents
-  const issued = invoiceIdentity(input.year, input.month)
+  const issued = input.issueDate ?? today()
+  const invoiceId = input.invoiceNumber?.trim() || invoiceIdentity(input.year, input.month).id
   return {
     year: input.year,
     month: input.month,
@@ -33,7 +38,7 @@ export function calculate(input: {
     overtimeCents,
     exactTotalCents,
     invoiceCents: floorToDollar(exactTotalCents),
-    invoiceId: issued.id,
+    invoiceId,
     invoiceYear: issued.year,
     invoiceMonth: issued.month,
     invoiceDay: issued.day,
