@@ -65,6 +65,10 @@ npm run generate -- --profile profile.json --input month.txt --year 2026 --out .
 
 `profile.json` is the file you export from the page. `month.txt` is the pasted notes. `--year` can be left out when the notes write the year (`01/10/2026`, `2026-10-01`).
 
+## Logos
+
+Your company and the client can each have a logo: PNG, JPEG, SVG or WebP. The page turns it into a PNG sized for print, so it stays sharp and small. Your logo goes at the top of the invoice and the breakdown; the client's goes above their name under *Bill to*. Logos stay in this browser with the profile and travel inside the exported profile JSON. The example's logos are in [`examples/logos/`](examples/logos) and are made up, like the companies.
+
 ## Notes format
 
 Write one day per line, the way you already do. Each line needs a date and the time worked; whatever is left is the task list.
@@ -90,10 +94,6 @@ Oct 6: 18:00-20:30 APP 1 2
 - If the line says `Total`, the time after it wins over any other time on the line.
 
 Tasks: an uppercase project code applies to the bare numbers that follow it, until another project code appears. `SOFT 100` becomes `SOFT-100`. `PLA-400` stays as it is. Words stay as a description, in the order you wrote them. A parenthetical stays on the item before it: `PLA 500 (Sample note)`. A code repeated on the same day is kept once. Names, timestamps, `(edited)`, and `Sent using @…` are ignored.
-
-## Logos
-
-Your company and the client can each have a logo: PNG, JPEG, SVG or WebP. The page turns it into a PNG sized for print, so it stays sharp and small. Your logo goes at the top of the invoice and the breakdown; the client's goes above their name under *Bill to*. Logos stay in this browser with the profile and travel inside the exported profile JSON. The example's logos are in [`examples/logos/`](examples/logos) and are made up, like the companies.
 
 ## How the total is calculated
 
