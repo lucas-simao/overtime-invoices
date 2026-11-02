@@ -31,9 +31,9 @@ I hope you're doing well.
 Please find attached Invoice #20261101 for October 2026, along with the Overtime Breakdown document detailing all overtime hours and the corresponding tasks completed during the month.
 
 Invoice Summary
-Base salary: $7,920.00
-Overtime: $253.13 (4:30 hours)
-Total invoice amount: $8,173.00
+Base salary: $5,280.00
+Overtime: $182.25 (4:30 hours)
+Total invoice amount: $5,462.00
 
 If you have any questions or need any additional information, please don't hesitate to reach out.
 
@@ -114,7 +114,7 @@ The business days are the days in the month that fall on the profile's **work da
 - Overtime pay is rounded to the nearest cent
 - The invoice total drops the remaining cents, so the amount is a whole dollar and the words end in "zero cents"
 
-At $45 an hour and 25% overtime, the example month is the check: 4:30 of overtime is $253.13, the base salary is $7,920.00, and the invoice is $8,173.00.
+At $30 an hour and 35% overtime, the example month is the check: the overtime rate is $40.50, 4:30 of overtime is $182.25, the base salary is $5,280.00, and the total of $5,462.25 becomes an invoice of $5,462.00.
 
 The PDFs follow the letter shown on the page: the same layout, colors and type hierarchy. The invoice is US Letter and the breakdown is A4. They use Times and Helvetica, the fonts built into every PDF reader, in place of the page's IBM Plex Serif and Sans, so the project ships no font files.
 
