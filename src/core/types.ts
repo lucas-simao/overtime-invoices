@@ -4,10 +4,14 @@ export type Profile = {
     addressLines: string[]
     signName: string
     shortName: string
+    /** A PNG or JPEG data URL. */
+    logo?: string
   }
   billTo: {
     name: string
     addressLines: string[]
+    /** A PNG or JPEG data URL. */
+    logo?: string
   }
   serviceDescription: string
   hourlyRate: number

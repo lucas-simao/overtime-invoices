@@ -11,6 +11,7 @@ import {
   drawSignature,
   drawText,
   embedFonts,
+  embedLogo,
   type Fonts,
   ink,
   label,
@@ -46,6 +47,7 @@ export async function renderBreakdown(profile: Profile, calc: Calculation): Prom
   doc.setAuthor(profile.issuer.signName.trim())
   doc.setCreator('overtime-invoices')
   const fonts = await embedFonts(doc)
+  const issuerLogo = await embedLogo(doc, profile.issuer.logo)
 
   const body: TextStyle = { font: fonts.serif, size: 12 }
   const row: TextStyle = { font: fonts.serif, size: 12 }
@@ -59,6 +61,7 @@ export async function renderBreakdown(profile: Profile, calc: Calculation): Prom
     page,
     fonts,
     {
+      logo: issuerLogo,
       issuerName: profile.issuer.legalName.trim(),
       issuerAddress: filled(profile.issuer.addressLines),
       kind: 'Overtime breakdown',
@@ -68,6 +71,7 @@ export async function renderBreakdown(profile: Profile, calc: Calculation): Prom
     LEFT,
     RIGHT,
     TOP,
+    { compact: true },
   )
 
   const newPage = () => {

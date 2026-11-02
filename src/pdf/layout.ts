@@ -2,11 +2,13 @@ import {
   type Color,
   type PDFDocument,
   type PDFFont,
+  type PDFImage,
   type PDFPage,
   rgb,
   setCharacterSpacing,
   StandardFonts,
 } from 'pdf-lib'
+import { decodeLogo } from '../core/logo'
 
 /*
  * The PDFs follow the letter on the page (the `Letter` component in App.tsx):
@@ -153,7 +155,34 @@ export function drawArrow(page: PDFPage, x: number, y: number, width: number, co
   page.drawLine({ start: { x: x + width - 2.6, y: mid - 2.2 }, end: { x: x + width, y: mid }, thickness: 0.7, color })
 }
 
+/** Embeds a logo data URL. A logo that cannot be read is left out rather than stopping the PDF. */
+export async function embedLogo(doc: PDFDocument, dataUrl: string | undefined): Promise<PDFImage | null> {
+  const logo = decodeLogo(dataUrl)
+  if (!logo) return null
+  try {
+    return logo.kind === 'png' ? await doc.embedPng(logo.bytes) : await doc.embedJpg(logo.bytes)
+  } catch {
+    return null
+  }
+}
+
+/** Draws an image inside a box whose top-left corner is (x, top). Returns the height used. */
+export function drawLogo(
+  page: PDFPage,
+  image: PDFImage,
+  x: number,
+  top: number,
+  maxWidth: number,
+  maxHeight: number,
+  align: 'left' | 'right' = 'left',
+): number {
+  const { width, height } = image.scaleToFit(maxWidth, maxHeight)
+  page.drawImage(image, { x: align === 'right' ? x - width : x, y: top - height, width, height })
+  return height
+}
+
 export type Header = {
+  logo?: PDFImage | null
   issuerName: string
   issuerAddress: string[]
   kind: string
@@ -172,16 +201,23 @@ export function drawLetterhead(
   left: number,
   right: number,
   top: number,
+  options: { compact?: boolean } = {},
 ): number {
   const rightWidth = 170
   const leftWidth = right - left - rightWidth - 24
 
   let y = top - 18
+  if (header.logo) {
+    y -= drawLogo(page, header.logo, left, top, Math.min(leftWidth, 170), options.compact ? 34 : 44) + (options.compact ? 8 : 12)
+  }
   const nameStyle: TextStyle = { font: fonts.serifBold, size: 18 }
   y = drawLines(page, wrapText(header.issuerName, nameStyle.font, nameStyle.size, leftWidth), left, y, nameStyle, 22)
   y -= 2
   const addressStyle: TextStyle = { font: fonts.sans, size: 9.5, color: muted }
-  for (const line of header.issuerAddress) {
+  // The compact letterhead (the breakdown, an attachment) runs the address on as one line.
+  const addressLines = options.compact ? [header.issuerAddress.join('  \u00b7  ')] : header.issuerAddress
+  for (const line of addressLines) {
+    if (!line) continue
     y = drawLines(page, wrapText(line, addressStyle.font, addressStyle.size, leftWidth), left, y, addressStyle, 14)
   }
   const leftBottom = y + 14

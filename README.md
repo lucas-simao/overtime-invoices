@@ -8,7 +8,7 @@ A local page for a monthly contractor invoice. You fill in a profile, paste the 
 
 ## What it makes
 
-These are the files for the fictional company in [`examples/`](examples): Northwind Studio billing Example Client for October 2026, with three days of overtime.
+These are the files for the fictional company in [`examples/`](examples): Northwind Studio billing Example Client for October 2026, with three days of overtime. Both companies and their logos are made up.
 
 ![Invoice and overtime breakdown generated from the example month](docs/documents.png)
 
@@ -64,6 +64,10 @@ npm run generate -- --profile profile.json --input month.txt --year 2026 --out .
 ```
 
 `profile.json` is the file you export from the page. `month.txt` is the pasted notes. `--year` can be left out when the notes write the year (`01/10/2026`, `2026-10-01`). The invoice is dated today unless you pass `--date 2026-11-05`, and `--number INV-042` replaces the usual number.
+
+## Logos
+
+Your company and the client can each have a logo: PNG, JPEG, SVG or WebP. The page turns it into a PNG sized for print, so it stays sharp and small. Your logo goes at the top of the invoice and the breakdown; the client's goes above their name under *Bill to*. Logos stay in this browser with the profile and travel inside the exported profile JSON. The example's logos are in [`examples/logos/`](examples/logos) and are made up, like the companies.
 
 ## Notes format
 
