@@ -39,7 +39,6 @@ import {
   buildEmail,
   invoiceFileName,
   invoiceIssueDate,
-  overtimeDaysLabel,
 } from "@/core/documents"
 import {
   dollarsToCents,
@@ -1197,13 +1196,7 @@ function Letter({ profile, calc }: { profile: Profile; calc: Calculation }) {
         </tbody>
       </table>
 
-      <p className="mt-5 font-sans text-xs text-paper-muted sm:mt-7 sm:text-[0.8125rem]">
-        {overtimeDaysLabel(calc.days.length)} in{" "}
-        {period} →{" "}
-        <span className="font-mono">{formatDuration(calc.overtimeMinutes)}</span>
-      </p>
-
-      <div className="mt-8 flex w-44 flex-col gap-1 sm:mt-14 sm:w-64">
+      <div className="mt-10 flex w-44 flex-col gap-1 sm:mt-14 sm:w-64">
         <div className="mb-2 h-px bg-paper-foreground" />
         <span className="text-sm sm:text-[0.9375rem]">
           {profile.issuer.signName}
