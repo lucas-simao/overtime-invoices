@@ -16,8 +16,8 @@ const profile: Profile = {
   },
   billTo: { name: 'Example Client', addressLines: ['100 Market St'] },
   serviceDescription: 'App development services',
-  hourlyRate: 45,
-  overtimePercent: 25,
+  hourlyRate: 30,
+  overtimePercent: 35,
   hoursPerBusinessDay: 8,
   recipientName: 'Jordan',
 }

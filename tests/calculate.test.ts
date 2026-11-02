@@ -23,8 +23,8 @@ const profile: Profile = {
   },
   billTo: { name: 'Example Client', addressLines: ['100 Market St'] },
   serviceDescription: 'App development services',
-  hourlyRate: 45,
-  overtimePercent: 25,
+  hourlyRate: 30,
+  overtimePercent: 35,
   hoursPerBusinessDay: 8,
   recipientName: 'Jordan',
 }
@@ -59,12 +59,12 @@ describe('business days', () => {
   })
 
   it('pays only the picked days in the base salary', () => {
-    const input = { year: 2026, month: 10, hourlyRate: 45, overtimePercent: 25, hoursPerBusinessDay: 8, days: [day(10, 60)] }
-    expect(calculate(input).baseCents).toBe(22 * 8 * 4500)
+    const input = { year: 2026, month: 10, hourlyRate: 30, overtimePercent: 35, hoursPerBusinessDay: 8, days: [day(10, 60)] }
+    expect(calculate(input).baseCents).toBe(22 * 8 * 3000)
     const saturdays = calculate({ ...input, workDays: [6, 1, 2, 3, 4, 5, 1] })
     expect(saturdays.workDays).toEqual([1, 2, 3, 4, 5, 6])
     expect(saturdays.businessDays).toBe(27)
-    expect(saturdays.baseCents).toBe(27 * 8 * 4500)
+    expect(saturdays.baseCents).toBe(27 * 8 * 3000)
     // Overtime is only what the notes say, on any day.
     expect(saturdays.overtimeCents).toBe(calculate(input).overtimeCents)
   })
@@ -100,30 +100,31 @@ describe('business days', () => {
 
 describe('money', () => {
   it('spells whole dollars with and before the last part under one hundred', () => {
-    expect(dollarWords(8173)).toBe('eight thousand one hundred and seventy-three')
+    expect(dollarWords(5462)).toBe('five thousand four hundred and sixty-two')
     expect(dollarWords(2001)).toBe('two thousand and one')
     expect(dollarWords(2000)).toBe('two thousand')
   })
 
   it('rounds a half cent up and drops leftover cents from the invoice', () => {
-    expect(overtimeAmountCents(1, 5625)).toBe(94)
+    // One minute at $30.30 is 50.5 cents.
+    expect(overtimeAmountCents(1, 3030)).toBe(51)
     const calc = calculate({
       year: 2026,
       month: 10,
-      hourlyRate: 45,
-      overtimePercent: 25,
+      hourlyRate: 30,
+      overtimePercent: 35,
       hoursPerBusinessDay: 8,
       days: [day(10, 4 * 60 + 30)],
     })
-    expect(formatMoney(calc.baseCents)).toBe('$7,920.00')
-    expect(formatMoney(calc.overtimeRateCents)).toBe('$56.25')
+    expect(formatMoney(calc.baseCents)).toBe('$5,280.00')
+    expect(formatMoney(calc.overtimeRateCents)).toBe('$40.50')
     expect(formatDuration(calc.overtimeMinutes)).toBe('4:30')
-    expect(formatMoney(calc.overtimeCents)).toBe('$253.13')
-    expect(calc.exactTotalCents).toBe(817_313)
-    expect(formatMoney(calc.invoiceCents)).toBe('$8,173.00')
+    expect(formatMoney(calc.overtimeCents)).toBe('$182.25')
+    expect(calc.exactTotalCents).toBe(546_225)
+    expect(formatMoney(calc.invoiceCents)).toBe('$5,462.00')
     expect(calc.invoiceId).toBe('20261101')
     expect(totalSentence(calc)).toBe(
-      'Total: $8173 (eight thousand one hundred and seventy-three dollars and zero cents)',
+      'Total: $5462 (five thousand four hundred and sixty-two dollars and zero cents)',
     )
   })
 })
@@ -133,8 +134,8 @@ describe('email and breakdown', () => {
     const calc = calculate({
       year: 2026,
       month: 10,
-      hourlyRate: 45,
-      overtimePercent: 25,
+      hourlyRate: 30,
+      overtimePercent: 35,
       hoursPerBusinessDay: 8,
       days: [day(10, 4 * 60 + 30)],
     })
@@ -145,9 +146,9 @@ I hope you're doing well.
 Please find attached Invoice #20261101 for October 2026, along with the Overtime Breakdown document detailing all overtime hours and the corresponding tasks completed during the month.
 
 Invoice Summary
-Base salary: $7,920.00
-Overtime: $253.13 (4:30 hours)
-Total invoice amount: $8,173.00
+Base salary: $5,280.00
+Overtime: $182.25 (4:30 hours)
+Total invoice amount: $5,462.00
 
 If you have any questions or need any additional information, please don't hesitate to reach out.
 
@@ -162,7 +163,7 @@ Northwind Studio`)
 })
 
 describe('invoice date and number', () => {
-  const base = { year: 2026, month: 10, hourlyRate: 45, overtimePercent: 25, hoursPerBusinessDay: 8, days: [day(10, 60)] }
+  const base = { year: 2026, month: 10, hourlyRate: 30, overtimePercent: 35, hoursPerBusinessDay: 8, days: [day(10, 60)] }
 
   it('is dated today and numbered for the month by default', () => {
     const calc = calculate(base)

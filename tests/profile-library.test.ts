@@ -19,8 +19,8 @@ function profile(patch: Partial<Profile> = {}): Profile {
     },
     billTo: { name: 'Example Client', addressLines: ['100 Market St'] },
     serviceDescription: 'App development services',
-    hourlyRate: 45,
-    overtimePercent: 25,
+    hourlyRate: 30,
+    overtimePercent: 35,
     hoursPerBusinessDay: 8,
     recipientName: 'Jordan',
     ...patch,
@@ -67,9 +67,9 @@ describe('profile library', () => {
   })
 
   it('summarizes a profile with the rate', () => {
-    expect(profileSummary(profile())).toBe('Northwind Studio · Example Client · $45/h · 25%')
-    expect(profileSummary(profile({ hourlyRate: 45.5 }))).toBe(
-      'Northwind Studio · Example Client · $45.50/h · 25%',
+    expect(profileSummary(profile())).toBe('Northwind Studio · Example Client · $30/h · 35%')
+    expect(profileSummary(profile({ hourlyRate: 30.5 }))).toBe(
+      'Northwind Studio · Example Client · $30.50/h · 35%',
     )
   })
 })
