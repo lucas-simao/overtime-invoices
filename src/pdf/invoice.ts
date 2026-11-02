@@ -1,10 +1,9 @@
 import { PDFDocument } from 'pdf-lib'
 import { MONTHS } from '../core/dates'
-import { invoiceIssueDate, overtimeDaysLabel } from '../core/documents'
+import { invoiceIssueDate } from '../core/documents'
 import { formatDuration, formatMoney, invoiceAmountWords } from '../core/money'
 import type { Calculation, Profile } from '../core/types'
 import {
-  drawArrow,
   drawLabel,
   drawLetterhead,
   drawLines,
@@ -146,16 +145,7 @@ export async function renderInvoice(profile: Profile, calc: Calculation): Promis
   drawText(page, 'Total', LEFT, y, { font: fonts.serifBold, size: 12.5 })
   drawText(page, formatMoney(calc.invoiceCents), RIGHT, y, { font: fonts.sansBold, size: 11 }, 'right')
 
-  // "3 days with overtime in October 2026 → 7:20"
-  y -= 32
-  const countStyle: TextStyle = { font: fonts.sans, size: 9.5, color: muted }
-  const count = `${overtimeDaysLabel(calc.days.length)} in ${period}`
-  drawText(page, count, LEFT, y, countStyle)
-  x = LEFT + textWidth(count, countStyle) + 5
-  drawArrow(page, x, y, 10, muted)
-  drawText(page, formatDuration(calc.overtimeMinutes), x + 15, y, countStyle)
-
-  y -= 64
+  y -= 80
   drawSignature(
     page,
     fonts,
