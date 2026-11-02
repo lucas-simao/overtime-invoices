@@ -32,14 +32,38 @@ export function daysInMonth(year: number, month: number): number {
   return new Date(year, month, 0).getDate()
 }
 
-export function countBusinessDays(year: number, month: number): number {
+/** Monday to Friday, in Date.getDay() numbers (0 = Sunday). */
+export const WEEKDAYS = [1, 2, 3, 4, 5]
+
+export const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const
+export const DAY_NAMES_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const
+
+/** Sorted, unique, 0–6. Falls back to Monday to Friday when nothing usable is given. */
+export function normalizeWorkDays(days: readonly number[] | undefined): number[] {
+  if (!days) return [...WEEKDAYS]
+  return [...new Set(days)].filter((day) => Number.isInteger(day) && day >= 0 && day <= 6).sort((a, b) => a - b)
+}
+
+/** The days in the month that fall on a work day: the business days of the base salary. */
+export function countBusinessDays(year: number, month: number, workDays: readonly number[] = WEEKDAYS): number {
   const last = daysInMonth(year, month)
   let count = 0
   for (let day = 1; day <= last; day += 1) {
-    const weekday = new Date(year, month - 1, day).getDay()
-    if (weekday !== 0 && weekday !== 6) count += 1
+    if (workDays.includes(new Date(year, month - 1, day).getDay())) count += 1
   }
   return count
+}
+
+/** "Mon–Fri", "Mon–Sat", "Sat–Sun", "Tue, Thu, Sat", "every day". Weeks start on Monday. */
+export function workDaysLabel(workDays: readonly number[]): string {
+  const days = normalizeWorkDays(workDays)
+  if (days.length === 7) return 'every day'
+  const order = [1, 2, 3, 4, 5, 6, 0]
+  const positions = days.map((day) => order.indexOf(day)).sort((a, b) => a - b)
+  const consecutive = positions.every((position, index) => index === 0 || position === positions[index - 1] + 1)
+  const names = positions.map((position) => DAY_NAMES_SHORT[order[position]])
+  if (consecutive && names.length >= 3) return `${names[0]}\u2013${names[names.length - 1]}`
+  return names.join(', ')
 }
 
 export function invoiceIdentity(year: number, month: number): {

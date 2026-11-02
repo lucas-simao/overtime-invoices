@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { calculate } from '../src/core/calculate'
-import { countBusinessDays, invoiceIdentity, invoiceNumberError, parseIsoDate, today } from '../src/core/dates'
+import {
+  countBusinessDays,
+  invoiceIdentity,
+  invoiceNumberError,
+  parseIsoDate,
+  today,
+  workDaysLabel,
+} from '../src/core/dates'
+import { isProfile, profileErrors } from '../src/core/profile'
 import { breakdownIntro, buildEmail, totalSentence } from '../src/core/documents'
 import { dollarWords, formatDuration, formatMoney, overtimeAmountCents } from '../src/core/money'
 import type { DayEntry, Profile } from '../src/core/types'
@@ -38,6 +46,42 @@ describe('business days', () => {
     expect(countBusinessDays(2026, 8)).toBe(21)
     expect(countBusinessDays(2026, 9)).toBe(22)
     expect(countBusinessDays(2026, 10)).toBe(22)
+  })
+
+  it('counts the work days a profile picks', () => {
+    // October 2026 starts on a Thursday: 5 Thursdays, Fridays and Saturdays, 4 of every other day.
+    expect(countBusinessDays(2026, 10, [1, 2, 3, 4, 5, 6])).toBe(27)
+    expect(countBusinessDays(2026, 10, [2, 3, 4, 5, 6])).toBe(23)
+    expect(countBusinessDays(2026, 10, [0, 6])).toBe(9)
+    expect(countBusinessDays(2026, 10, [0, 1, 2, 3, 4, 5, 6])).toBe(31)
+    expect(countBusinessDays(2026, 10, [])).toBe(0)
+  })
+
+  it('pays only the picked days in the base salary', () => {
+    const input = { year: 2026, month: 10, hourlyRate: 45, overtimePercent: 25, hoursPerBusinessDay: 8, days: [day(10, 60)] }
+    expect(calculate(input).baseCents).toBe(22 * 8 * 4500)
+    const saturdays = calculate({ ...input, workDays: [6, 1, 2, 3, 4, 5, 1] })
+    expect(saturdays.workDays).toEqual([1, 2, 3, 4, 5, 6])
+    expect(saturdays.businessDays).toBe(27)
+    expect(saturdays.baseCents).toBe(27 * 8 * 4500)
+    // Overtime is only what the notes say, on any day.
+    expect(saturdays.overtimeCents).toBe(calculate(input).overtimeCents)
+  })
+
+  it('names the work days', () => {
+    expect(workDaysLabel([1, 2, 3, 4, 5])).toBe('Mon\u2013Fri')
+    expect(workDaysLabel([1, 2, 3, 4, 5, 6])).toBe('Mon\u2013Sat')
+    expect(workDaysLabel([6, 0])).toBe('Sat, Sun')
+    expect(workDaysLabel([2, 4, 6])).toBe('Tue, Thu, Sat')
+    expect(workDaysLabel([5, 6, 0])).toBe('Fri\u2013Sun')
+    expect(workDaysLabel([0, 1, 2, 3, 4, 5, 6])).toBe('every day')
+  })
+
+  it('needs at least one work day and reads profiles saved before work days existed', () => {
+    expect(profileErrors({ ...profile, workDays: [] })).toContain('Pick at least one work day.')
+    expect(profileErrors({ ...profile, workDays: [1] })).toEqual([])
+    expect(isProfile(profile)).toBe(true)
+    expect(isProfile({ ...profile, workDays: [7] })).toBe(false)
   })
 
   it('numbers the invoice as the first day of the next month', () => {
