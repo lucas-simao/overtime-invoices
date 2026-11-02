@@ -4,6 +4,7 @@ import { parseArgs } from 'node:util'
 import { calculate } from '../src/core/calculate'
 import { breakdownFileName, buildEmail, invoiceFileName } from '../src/core/documents'
 import { formatDuration, formatMoney } from '../src/core/money'
+import { invoiceNumberError, parseIsoDate } from '../src/core/dates'
 import { assessMonth, parseOvertime } from '../src/core/parse'
 import { isProfile, profileErrors } from '../src/core/profile'
 import { renderBreakdown } from '../src/pdf/breakdown'
@@ -15,13 +16,15 @@ const { values } = parseArgs({
     input: { type: 'string' },
     year: { type: 'string' },
     out: { type: 'string' },
+    date: { type: 'string' },
+    number: { type: 'string' },
   },
 })
 
 function fail(message: string): never {
   console.error(message)
   console.error(
-    'Usage: npm run generate -- --profile profile.json --input month.txt [--year 2026] --out ./out',
+    'Usage: npm run generate -- --profile profile.json --input month.txt [--year 2026] [--date 2026-11-02] [--number 20261101] --out ./out',
   )
   process.exit(1)
 }
@@ -46,6 +49,11 @@ const month = months[0]
 const monthProblems = assessMonth(parsed.entries, year, month)
 if (monthProblems.length) fail(monthProblems.join('\n'))
 
+const issueDate = values.date ? parseIsoDate(values.date) : undefined
+if (issueDate === null) fail('--date must be a real date written as YYYY-MM-DD.')
+const numberProblem = values.number !== undefined ? invoiceNumberError(values.number) : undefined
+if (numberProblem) fail(numberProblem)
+
 const calc = calculate({
   year,
   month,
@@ -53,6 +61,8 @@ const calc = calculate({
   overtimePercent: profile.overtimePercent,
   hoursPerBusinessDay: profile.hoursPerBusinessDay,
   days: parsed.entries,
+  issueDate,
+  invoiceNumber: values.number,
 })
 
 const out = resolve(values.out)

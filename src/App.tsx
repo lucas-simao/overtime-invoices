@@ -23,7 +23,15 @@ import { cn } from "cn"
 import sampleProfile from "../examples/sample-profile.json"
 import sampleMonth from "../examples/sample-month.txt?raw"
 import { calculate } from "@/core/calculate"
-import { MONTHS, previousMonth } from "@/core/dates"
+import {
+  invoiceIdentity,
+  invoiceNumberError,
+  MONTHS,
+  parseIsoDate,
+  previousMonth,
+  toIsoDate,
+  today,
+} from "@/core/dates"
 import {
   breakdownFileName,
   buildEmail,
@@ -87,6 +95,7 @@ import { Textarea } from "@/components/ui/textarea"
 const STORAGE_KEY = "overtime-invoice.v1"
 const LIBRARY_KEY = "overtime-invoice.profiles.v1"
 const YEAR_MESSAGE = "Enter a year between 2000 and 2100."
+const DATE_MESSAGE = "Enter the invoice date."
 
 const MONTH_ITEMS = MONTHS.map((label, index) => ({
   label,
@@ -108,6 +117,10 @@ type FormState = {
   year: string
   month: string
   notes: string
+  /** YYYY-MM-DD typed by the person. Empty means today. Not saved between visits. */
+  invoiceDate: string
+  /** Empty means the usual number for the month (20261101 for October 2026). Not saved between visits. */
+  invoiceNumber: string
 }
 
 type Draft = {
@@ -145,6 +158,8 @@ function emptyForm(period: { year: number; month: number }): FormState {
     year: String(period.year),
     month: String(period.month),
     notes: "",
+    invoiceDate: "",
+    invoiceNumber: "",
   }
 }
 
@@ -193,6 +208,8 @@ function fromDraft(draft: Draft): FormState {
     year: String(draft.year),
     month: String(draft.month),
     notes: draft.notes,
+    invoiceDate: "",
+    invoiceNumber: "",
   }
 }
 
@@ -284,6 +301,7 @@ function TextControl({
   inputMode,
   spellCheck,
   mono = false,
+  type,
   className,
 }: {
   id: string
@@ -297,6 +315,7 @@ function TextControl({
   inputMode?: HTMLAttributes<HTMLInputElement>["inputMode"]
   spellCheck?: boolean
   mono?: boolean
+  type?: "text" | "date"
   className?: string
 }) {
   const invalid = Boolean(error) || Boolean(errors?.length)
@@ -322,6 +341,7 @@ function TextControl({
           onChange={(event) => onChange(event.target.value)}
           aria-invalid={invalid || undefined}
           inputMode={inputMode}
+          type={type}
           autoComplete="off"
           className={cn(mono && "font-mono", className)}
         />
@@ -364,6 +384,16 @@ export function App() {
     ...(monthInvalid ? ["Choose the month that was worked."] : []),
     ...noteErrors,
   ]
+  const todayIso = toIsoDate(today())
+  const defaultNumber =
+    !yearInvalid && !monthInvalid ? invoiceIdentity(year, month).id : ""
+  const invoiceDate = form.invoiceDate || todayIso
+  const invoiceNumber = form.invoiceNumber || defaultNumber
+  const issueDate = parseIsoDate(invoiceDate)
+  const dateError = issueDate ? undefined : DATE_MESSAGE
+  const numberError = defaultNumber ? invoiceNumberError(invoiceNumber) : undefined
+  if (dateError) errors.push(dateError)
+  if (numberError) errors.push(numberError)
   const ready = !blank && errors.length === 0 && parsed.entries.length > 0
   const calc = useMemo(() => {
     if (!ready) return null
@@ -374,8 +404,10 @@ export function App() {
       overtimePercent: profile.overtimePercent,
       hoursPerBusinessDay: profile.hoursPerBusinessDay,
       days: parsed.entries,
+      issueDate: issueDate ?? undefined,
+      invoiceNumber,
     })
-  }, [ready, year, month, profile, parsed.entries])
+  }, [ready, year, month, profile, parsed.entries, issueDate?.year, issueDate?.month, issueDate?.day, invoiceNumber])
   const email = calc ? buildEmail(profile, calc) : ""
 
   useEffect(() => {
@@ -427,7 +459,12 @@ export function App() {
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setNotice(null)
     setCopied(false)
-    setForm((current) => ({ ...current, [key]: value }))
+    setForm((current) => ({
+      ...current,
+      [key]: value,
+      // A number typed for one month should not follow the form to another.
+      ...(key === "month" || key === "year" ? { invoiceNumber: "" } : {}),
+    }))
   }
 
   function loadExample() {
@@ -809,9 +846,30 @@ export function App() {
                     error={!blank && yearInvalid ? YEAR_MESSAGE : undefined}
                   />
                 </div>
+                <FieldDescription>The month the hours were worked.</FieldDescription>
+                <div className="grid grid-cols-2 gap-3">
+                  <TextControl
+                    id="invoiceDate"
+                    label="Invoice date"
+                    type="date"
+                    value={invoiceDate}
+                    onChange={(value) => setField("invoiceDate", value)}
+                    mono
+                    error={!blank ? dateError : undefined}
+                  />
+                  <TextControl
+                    id="invoiceNumber"
+                    label="Invoice number"
+                    value={invoiceNumber}
+                    onChange={(value) => setField("invoiceNumber", value)}
+                    spellCheck={false}
+                    mono
+                    error={!blank ? numberError : undefined}
+                  />
+                </div>
                 <FieldDescription>
-                  The month the hours were worked. The invoice is dated the 1st
-                  of the next month.
+                  The date starts as today and the number as {defaultNumber || "the 1st of the next month"}.
+                  Change either one to prepare an invoice now and send it later.
                 </FieldDescription>
                 <TextControl
                   id="notes"

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { calculate } from '../src/core/calculate'
-import { countBusinessDays, invoiceIdentity } from '../src/core/dates'
+import { countBusinessDays, invoiceIdentity, invoiceNumberError, parseIsoDate, today } from '../src/core/dates'
 import { breakdownIntro, buildEmail, totalSentence } from '../src/core/documents'
 import { dollarWords, formatDuration, formatMoney, overtimeAmountCents } from '../src/core/money'
 import type { DayEntry, Profile } from '../src/core/types'
@@ -107,5 +107,31 @@ Best regards,
 Alex Rivera
 Northwind Studio`)
     expect(breakdownIntro(calc)).toContain('4:30 hours of overtime worked during October 2026')
+  })
+})
+
+describe('invoice date and number', () => {
+  const base = { year: 2026, month: 10, hourlyRate: 45, overtimePercent: 25, hoursPerBusinessDay: 8, days: [day(10, 60)] }
+
+  it('is dated today and numbered for the month by default', () => {
+    const calc = calculate(base)
+    const now = today()
+    expect([calc.invoiceYear, calc.invoiceMonth, calc.invoiceDay]).toEqual([now.year, now.month, now.day])
+    expect(calc.invoiceId).toBe('20261101')
+  })
+
+  it('takes a chosen date and number', () => {
+    const calc = calculate({ ...base, issueDate: { year: 2026, month: 12, day: 5 }, invoiceNumber: ' INV-042 ' })
+    expect([calc.invoiceYear, calc.invoiceMonth, calc.invoiceDay]).toEqual([2026, 12, 5])
+    expect(calc.invoiceId).toBe('INV-042')
+  })
+
+  it('reads only real dates and safe numbers', () => {
+    expect(parseIsoDate('2026-11-02')).toEqual({ year: 2026, month: 11, day: 2 })
+    expect(parseIsoDate('2026-02-30')).toBe(null)
+    expect(parseIsoDate('02/11/2026')).toBe(null)
+    expect(invoiceNumberError('20261101')).toBe(undefined)
+    expect(invoiceNumberError('')).toBe('Enter an invoice number.')
+    expect(invoiceNumberError('a/b')).toBe('Use letters, digits, dots, dashes or underscores in the invoice number.')
   })
 })
