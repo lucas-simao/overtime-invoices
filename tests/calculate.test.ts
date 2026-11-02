@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { calculate } from '../src/core/calculate'
 import {
   countBusinessDays,
+  formatMonthPeriod,
   invoiceIdentity,
   invoiceNumberError,
   parseIsoDate,
@@ -66,6 +67,12 @@ describe('business days', () => {
     expect(saturdays.baseCents).toBe(27 * 8 * 4500)
     // Overtime is only what the notes say, on any day.
     expect(saturdays.overtimeCents).toBe(calculate(input).overtimeCents)
+  })
+
+  it('writes the month as a period', () => {
+    expect(formatMonthPeriod(2026, 10)).toBe('October 01\u201331, 2026')
+    expect(formatMonthPeriod(2026, 2)).toBe('February 01\u201328, 2026')
+    expect(formatMonthPeriod(2028, 2)).toBe('February 01\u201329, 2028')
   })
 
   it('names the work days', () => {

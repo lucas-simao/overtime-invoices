@@ -112,6 +112,11 @@ export function formatLongDate(year: number, month: number, day: number): string
   return `${MONTHS[month - 1]} ${String(day).padStart(2, '0')}, ${year}`
 }
 
+/** The whole month as a period: "October 01–31, 2026". */
+export function formatMonthPeriod(year: number, month: number): string {
+  return `${MONTHS[month - 1]} 01\u2013${String(daysInMonth(year, month)).padStart(2, '0')}, ${year}`
+}
+
 export function formatMonthDay(month: number, day: number): string {
   return `${MONTHS[month - 1]} ${String(day).padStart(2, '0')}`
 }

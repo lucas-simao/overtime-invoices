@@ -1,5 +1,5 @@
 import { PDFDocument, type PDFPage } from 'pdf-lib'
-import { formatLongDate, formatMonthDay, MONTHS, MONTHS_SHORT, WEEKDAYS, workDaysLabel } from '../core/dates'
+import { formatMonthDay, formatMonthPeriod, MONTHS, MONTHS_SHORT, WEEKDAYS, workDaysLabel } from '../core/dates'
 import { breakdownClosing, breakdownIntro, overtimeDaysLabel } from '../core/documents'
 import { formatDuration, formatMoney, formatPercent } from '../core/money'
 import type { Calculation, Profile } from '../core/types'
@@ -66,7 +66,8 @@ export async function renderBreakdown(profile: Profile, calc: Calculation): Prom
       issuerAddress: filled(profile.issuer.addressLines),
       kind: 'Overtime breakdown',
       id: calc.invoiceId,
-      date: formatLongDate(calc.year, calc.month, 1),
+      // The breakdown covers the month worked, so its header shows that period.
+      date: formatMonthPeriod(calc.year, calc.month),
     },
     LEFT,
     RIGHT,
